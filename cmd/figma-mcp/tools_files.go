@@ -310,6 +310,56 @@ func (s *Server) handleFetchImageFromURL(ctx context.Context, req mcp.CallToolRe
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
+func (s *Server) handleUploadImageFromURL(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	fileKey, err := req.RequireString("file_key")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	imageURL, err := req.RequireString("image_url")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	result, err := s.editor.UploadImageFromURL(ctx, fileKey, imageURL)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("upload image failed: %v", err)), nil
+	}
+
+	data, _ := json.MarshalIndent(result, "", "  ")
+	return mcp.NewToolResultText(string(data)), nil
+}
+
+func (s *Server) handleUploadMultipleImagesFromURLs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	fileKey, err := req.RequireString("file_key")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	imageURLsStr, err := req.RequireString("image_urls")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	imageURLs := strings.Split(imageURLsStr, ",")
+	for i, u := range imageURLs {
+		imageURLs[i] = strings.TrimSpace(u)
+	}
+
+	results, errs := s.editor.UploadMultipleImagesFromURLs(ctx, fileKey, imageURLs)
+
+	type uploadResponse struct {
+		Results []*util.UploadImageFromURLResult `json:"results"`
+		Errors  []string                         `json:"errors,omitempty"`
+	}
+
+	resp := uploadResponse{Results: results}
+	for _, e := range errs {
+		resp.Errors = append(resp.Errors, e.Error())
+	}
+
+	data, _ := json.MarshalIndent(resp, "", "  ")
+	return mcp.NewToolResultText(string(data)), nil
+}
+
 func (s *Server) handleSearchTextInFile(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	fileKey, err := req.RequireString("file_key")
 	if err != nil {

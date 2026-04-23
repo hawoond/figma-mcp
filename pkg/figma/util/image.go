@@ -14,10 +14,9 @@ import (
 )
 
 type ImageUploadResult struct {
-	ImageRef string
-	Width    int
-	Height   int
-	Format   string
+	ImageRef  string
+	Format    string
+	SizeBytes int
 }
 
 func FetchImageFromURL(ctx context.Context, imageURL string) ([]byte, string, error) {
@@ -91,25 +90,29 @@ func detectImageFormat(contentType, url string, data []byte) string {
 	return "png"
 }
 
-func ImageToBase64(data []byte, format string) string {
-	mimeType := "image/png"
-	switch format {
+func FormatToMIMEType(format string) string {
+	switch strings.ToLower(format) {
 	case "jpg", "jpeg":
-		mimeType = "image/jpeg"
+		return "image/jpeg"
 	case "gif":
-		mimeType = "image/gif"
+		return "image/gif"
 	case "webp":
-		mimeType = "image/webp"
+		return "image/webp"
+	default:
+		return "image/png"
 	}
+}
+
+func ImageToBase64(data []byte, format string) string {
+	mimeType := FormatToMIMEType(format)
 	encoded := base64.StdEncoding.EncodeToString(data)
 	return fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 }
 
 func BuildImageFillPaint(imageRef string) types.Paint {
-	scaleMode := "FILL"
 	return types.Paint{
 		Type:      "IMAGE",
-		ScaleMode: scaleMode,
+		ScaleMode: "FILL",
 		ImageRef:  imageRef,
 	}
 }

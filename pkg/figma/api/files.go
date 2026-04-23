@@ -94,13 +94,13 @@ func (a *FilesAPI) GetFileNodes(ctx context.Context, fileKey string, opts *GetFi
 }
 
 type GetImagesOptions struct {
-	IDs     []string
-	Scale   *float64
-	Format  string
-	SVGIncludeID bool
+	IDs               []string
+	Scale             *float64
+	Format            string
+	SVGIncludeID      bool
 	SVGSimplifyStroke bool
 	UseAbsoluteBounds bool
-	Version string
+	Version           string
 }
 
 func (a *FilesAPI) GetImages(ctx context.Context, fileKey string, opts *GetImagesOptions) (*types.ImageResponse, error) {
@@ -174,6 +174,14 @@ func (a *FilesAPI) GetFileVersions(ctx context.Context, fileKey string, opts *Ge
 
 	var result types.FileVersionsResponse
 	if err := a.client.Get(ctx, fmt.Sprintf("files/%s/versions", fileKey), params, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (a *FilesAPI) UploadImage(ctx context.Context, fileKey string, imageData []byte, mimeType string) (*types.UploadImageResponse, error) {
+	var result types.UploadImageResponse
+	if err := a.client.PostMultipart(ctx, fmt.Sprintf("files/%s/images", fileKey), imageData, mimeType, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

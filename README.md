@@ -22,7 +22,9 @@ Figma의 공식 REST API를 충실히 래핑하여 제공합니다.
 - `figma_get_nodes_by_type`: 특정 타입(TEXT, FRAME, COMPONENT 등)의 노드만 일괄 추출
 - `figma_export_frames`: 파일 내의 모든 프레임과 컴포넌트를 한 번에 이미지로 추출
 - `figma_export_node_as_image`: 특정 노드를 이미지로 렌더링하여 URL 반환
-- `figma_fetch_image_from_url`: 외부 이미지 URL을 받아 Base64로 변환 (Figma에 이미지 업로드 시 유용)
+- `figma_upload_image_from_url`: **외부 이미지 URL을 받아 Figma 파일에 직접 업로드** — 이미지를 다운로드하여 Figma에 등록하고, 노드의 IMAGE fill에 바로 사용할 수 있는 `image_ref`를 반환
+- `figma_upload_multiple_images_from_urls`: 여러 이미지 URL을 한 번에 Figma에 배치 업로드하여 `image_ref` 목록을 반환
+- `figma_fetch_image_from_url`: 외부 이미지 URL을 받아 Base64로 변환 (로컬 처리용)
 - `figma_search_text`: 파일 내의 모든 텍스트 노드에서 특정 문자열 검색
 - `figma_export_design_tokens`: Figma 변수(Variables)를 CSS Custom Properties 또는 JSON 형태로 즉시 추출
 - `figma_get_variable_summary`: 복잡한 변수 컬렉션과 모드를 사람이 읽기 쉬운 요약 형태로 제공

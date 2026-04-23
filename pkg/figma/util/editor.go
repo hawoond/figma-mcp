@@ -22,10 +22,56 @@ func NewEditor(files *api.FilesAPI, variables *api.VariablesAPI) *Editor {
 }
 
 type UploadImageFromURLResult struct {
-	NodeID   string
-	ImageRef string
-	Width    float64
-	Height   float64
+	ImageRef  string `json:"image_ref"`
+	Format    string `json:"format"`
+	SizeBytes int    `json:"size_bytes"`
+}
+
+func (e *Editor) UploadImageFromURL(ctx context.Context, fileKey string, imageURL string) (*UploadImageFromURLResult, error) {
+	data, format, err := FetchImageFromURL(ctx, imageURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetch image from URL: %w", err)
+	}
+
+	mimeType := FormatToMIMEType(format)
+	resp, err := e.files.UploadImage(ctx, fileKey, data, mimeType)
+	if err != nil {
+		return nil, fmt.Errorf("upload image to figma: %w", err)
+	}
+
+	return &UploadImageFromURLResult{
+		ImageRef:  resp.ImageRef,
+		Format:    format,
+		SizeBytes: len(data),
+	}, nil
+}
+
+type UploadAndApplyResult struct {
+	ImageRef  string `json:"image_ref"`
+	NodeID    string `json:"node_id"`
+	ScaleMode string `json:"scale_mode"`
+	Format    string `json:"format"`
+	SizeBytes int    `json:"size_bytes"`
+}
+
+func (e *Editor) UploadImageFromURLAndGetRef(ctx context.Context, fileKey string, imageURL string) (*UploadImageFromURLResult, error) {
+	return e.UploadImageFromURL(ctx, fileKey, imageURL)
+}
+
+func (e *Editor) UploadMultipleImagesFromURLs(ctx context.Context, fileKey string, imageURLs []string) ([]*UploadImageFromURLResult, []error) {
+	results := make([]*UploadImageFromURLResult, 0, len(imageURLs))
+	var errs []error
+
+	for _, imgURL := range imageURLs {
+		result, err := e.UploadImageFromURL(ctx, fileKey, imgURL)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("URL %s: %w", imgURL, err))
+			continue
+		}
+		results = append(results, result)
+	}
+
+	return results, errs
 }
 
 func (e *Editor) GetFileWithNodeSearch(ctx context.Context, fileKey string, searchName string) ([]*types.Node, error) {
@@ -140,10 +186,10 @@ type VariableSummary struct {
 }
 
 type CollectionSummary struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Modes     []string          `json:"modes"`
-	Variables []VariableInfo    `json:"variables"`
+	ID        string         `json:"id"`
+	Name      string         `json:"name"`
+	Modes     []string       `json:"modes"`
+	Variables []VariableInfo `json:"variables"`
 }
 
 type VariableInfo struct {

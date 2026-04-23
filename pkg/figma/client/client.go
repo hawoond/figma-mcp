@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
@@ -127,6 +128,92 @@ func (c *Client) Delete(ctx context.Context, path string, params url.Values, res
 
 func (c *Client) DeleteWithBody(ctx context.Context, path string, body interface{}, result interface{}) error {
 	return c.do(ctx, http.MethodDelete, path, nil, body, result)
+}
+
+func (c *Client) PostMultipart(ctx context.Context, path string, imageData []byte, mimeType string, result interface{}) error {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile("image", "image")
+	if err != nil {
+		return fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := part.Write(imageData); err != nil {
+		return fmt.Errorf("write image data: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.buildURL(path, nil), &buf)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("X-Figma-Token", c.token)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	if result != nil {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("unmarshal response: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) PostRaw(ctx context.Context, path string, body io.Reader, contentType string, result interface{}) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.buildURL(path, nil), body)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("X-Figma-Token", c.token)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	if result != nil {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("unmarshal response: %w", err)
+		}
+	}
+
+	return nil
 }
 
 type APIError struct {

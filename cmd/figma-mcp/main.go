@@ -349,6 +349,24 @@ func (s *Server) registerTools() {
 	)
 
 	s.mcp.AddTool(
+		mcp.NewTool("figma_upload_image_from_url",
+			mcp.WithDescription("Upload an image from a URL directly to a Figma file. Downloads the image from the given URL and uploads it to Figma, returning the image_ref that can be used as an IMAGE fill on any node."),
+			mcp.WithString("file_key", mcp.Required(), mcp.Description("The Figma file key")),
+			mcp.WithString("image_url", mcp.Required(), mcp.Description("The URL of the image to upload (PNG, JPG, GIF, WebP supported)")),
+		),
+		s.handleUploadImageFromURL,
+	)
+
+	s.mcp.AddTool(
+		mcp.NewTool("figma_upload_multiple_images_from_urls",
+			mcp.WithDescription("Upload multiple images from URLs to a Figma file in batch. Returns a list of image_refs for each uploaded image."),
+			mcp.WithString("file_key", mcp.Required(), mcp.Description("The Figma file key")),
+			mcp.WithString("image_urls", mcp.Required(), mcp.Description("Comma-separated list of image URLs to upload")),
+		),
+		s.handleUploadMultipleImagesFromURLs,
+	)
+
+	s.mcp.AddTool(
 		mcp.NewTool("figma_get_dev_resources",
 			mcp.WithDescription("Get dev resources (links) attached to nodes in a Figma file."),
 			mcp.WithString("file_key", mcp.Required(), mcp.Description("The Figma file key")),
